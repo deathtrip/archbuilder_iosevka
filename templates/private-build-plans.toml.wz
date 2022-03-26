@@ -1,34 +1,36 @@
-@require(charvars, spacings)
-@#
-@for spacing in spacings:
-@(
-    plan='-'.join(filter(None, ('iosevka', spacing, 'custom')))
-    family=plan.replace('-', ' ').title()
-)\
-@#
-[buildPlans.@plan]
-family = "@family"
-export-glyph-names = true
-@if spacing:
-spacing = "@spacing"
-@end
+[buildPlans.iosevka-custom]
+family = "Iosevka Custom"
+spacing = "term"
+serifs = "slab"
+no-cv-ss = true
 
-[buildPlans.@{plan}.ligations]
-inherits = "dlig"
-# disables = []
-# enables = []
+[buildPlans.iosevka-custom.variants.design]
+capital-c = "unilateral-serifed"
+capital-g = "toothless-rounded-serifed-hooked"
+capital-i = "short-serifed"
+capital-j = "serifed-symmetric"
+d = "toothed-top-serifed"
+f = "flat-hook-serifed"
+w = "straight-flat-top"
+long-s = "flat-hook"
+eszet = "sulzbacher-descending"
+cyrl-capital-ka = "straight-serifed"
+cyrl-ka = "straight-serifed"
+two = "straight-neck"
+three = "two-arcs"
+four = "closed"
+five = "vertical-upper-left-bar"
+six = "closed-contour"
+seven = "bend-serifed"
+eight = "two-circles"
+nine = "closed-contour"
+asterisk = "hex-low"
+brace = "straight"
+at = "fourfold"
+percent = "rings-continuous-slash"
+punctuation-dot = "square"
+diacritic-dot = "square"
 
-# [buildPlans.@{plan}.variants]
-# inherits = "ss16"
+  [buildPlans.iosevka-custom.ligations]
+  inherits = "dlig" 
 
-[buildPlans.@{plan}.variants.design]
-@for char, style in charvars.items():
-@char = "@style"
-@end
-
-# Override above variants for each slope:
-# [buildPlans.@{plan}.variants.upright]
-# [buildPlans.@{plan}.variants.italic]
-# [buildPlans.@{plan}.variants.oblique]
-
-@end
