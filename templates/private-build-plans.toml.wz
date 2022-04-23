@@ -21,7 +21,7 @@ three = "two-arcs"
 four = "closed"
 five = "vertical-upper-left-bar"
 six = "closed-contour"
-seven = "bend-crossbar-serifed"
+seven = "bend-serifed"
 eight = "two-circles"
 nine = "closed-contour"
 asterisk = "hex-low"
@@ -32,4 +32,9 @@ punctuation-dot = "square"
 diacritic-dot = "square"
 
   [buildPlans.iosevka-custom.ligations]
-  inherits = "swift"
+  inherits = "clike"
+
+[buildPlans.iosevka-custom.widths.normal]
+shape = 600
+menu = 5
+css = "normal"
