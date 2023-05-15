@@ -1,0 +1,87 @@
+name: Build and upload Arch Linux packages
+on:
+  push:
+    tags:
+      - '**'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: create and update build ctnr from official repos
+        run: |
+          buildah from --name ctnr docker.io/library/archlinux:base-devel
+          buildah copy ctnr 'https://archlinux.org/mirrorlist/?country=US&protocol=https&ip_version=4&ip_version=6&use_mirror_status=on' /tmp/mirrorlist
+          buildah run ctnr sh -c "sed 's/^#Server =/Server =/g' /tmp/mirrorlist | shuf >/etc/pacman.d/mirrorlist"
+          buildah run ctnr chmod 0644 /etc/pacman.d/mirrorlist
+          buildah run ctnr pacman --noconfirm -Syu
+          buildah run ctnr pacman --noconfirm -S --needed git
+
+      - name: add non-root user to build ctnr
+        run: |
+          buildah run ctnr useradd -m dev
+          buildah run ctnr sh -c 'printf "%s\n" "dev ALL=(ALL) NOPASSWD: ALL" >>/etc/sudoers.d/dev'
+
+      - name: build and install AUR dep ttfautohint
+        run: |
+          buildah config -u dev ctnr
+          buildah run ctnr gpg --keyserver keyserver.ubuntu.com --recv-keys 58E0C111E39F5408C5D3EC76C1A60EACE707FDA5
+          buildah run ctnr git clone https://aur.archlinux.org/ttfautohint /home/dev/ttfautohint
+          buildah config --workingdir /home/dev/ttfautohint ctnr
+          buildah run ctnr makepkg --noconfirm -si
+
+      - name: install templating tools
+        run: |
+          python3 -m pip install -U pip setuptools wheel
+          python3 -m pip install -r requirements.txt
+          printf '%s\n' "$HOME/.local/bin" >>$GITHUB_PATH
+
+      - name: render PKGBUILDs
+        run: ./mk/pkgbuilds.sh
+
+      - name: copy ttf-iosevka-term-custom-git PKGBUILD into build ctnr
+        run: |
+          buildah copy --chown dev ctnr pkgs/ttf-iosevka-term-custom-git /home/dev/ttf-iosevka-term-custom-git
+
+      - name: build and siphon ttf-iosevka-term-custom-git from build ctnr
+        run: |
+          buildah config -u dev --workingdir /home/dev/ttf-iosevka-term-custom-git ctnr
+          buildah run ctnr makepkg --noconfirm -s
+
+          buildah run ctnr ls -lh
+
+          pkg="$(buildah run ctnr sh -c "printf '%s\n' *.pkg.*")"
+          mkdir -p "${RUNNER_TEMP}/dist"
+          buildah run ctnr cat "$pkg" >"${RUNNER_TEMP}/dist/${pkg}"
+
+          printf '%s\n' "${RUNNER_TEMP}/dist/"
+          ls -lh "${RUNNER_TEMP}/dist/"
+
+      - name: copy ttf-iosevka-quasi-proportional-extension-only-custom-git PKGBUILD into build ctnr
+        run: |
+          buildah copy --chown dev ctnr pkgs/ttf-iosevka-quasi-proportional-extension-only-custom-git /home/dev/ttf-iosevka-quasi-proportional-extension-only-custom-git
+
+      - name: build and siphon ttf-iosevka-quasi-proportional-extension-only-custom-git from build ctnr
+        run: |
+          buildah config -u dev --workingdir /home/dev/ttf-iosevka-quasi-proportional-extension-only-custom-git ctnr
+          buildah run ctnr makepkg --noconfirm -s
+
+          buildah run ctnr ls -lh
+
+          pkg="$(buildah run ctnr sh -c "printf '%s\n' *.pkg.*")"
+          mkdir -p "${RUNNER_TEMP}/dist"
+          buildah run ctnr cat "$pkg" >"${RUNNER_TEMP}/dist/${pkg}"
+
+          printf '%s\n' "${RUNNER_TEMP}/dist/"
+          ls -lh "${RUNNER_TEMP}/dist/"
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ runner.temp }}/dist/*
+          fail_on_unmatched_files: true
+          body_path: private-build-plans.toml
